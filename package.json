@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon --ext '.ts' ./server.ts",
     "clean": "rimraf ./build",
-    "killport": "kill-port --port 8080",
+    "killport": "kill-port --port 8081",
     "build": "babel ./ --extensions '.ts' --out-dir ./build --config-file ./.babelrc --no-copy-ignored --copy-files && rm -rf ./build/node_modules ./build/package.json ./build/tsconfig.json",
     "serve": "pm2 start -f ./build/server.js --name unifarm-tvl-fetch-updaters",
     "start": "npm-run-all clean killport build serve"
