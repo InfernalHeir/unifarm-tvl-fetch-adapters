@@ -1,8 +1,16 @@
 export const COHORTS_QUERY = `
-query GetCohort($where: CohortGroupWhereClause!) {
-    allCohortsAndProxies(where: $where) {
-      cohortAddress
-      proxies
+query AllPools($where: PoolsGroupWhereClause!) {
+  allPools(where: $where) {
+    pools {
+      token {
+        tokenId
+        decimals
+      }
+      cohort {
+        cohortAddress
+        proxies
+      }
     }
   }
+}
 `;

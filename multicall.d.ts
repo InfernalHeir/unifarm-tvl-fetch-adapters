@@ -83,7 +83,7 @@ declare module "@makerdao/multicall" {
   }
 
   export interface IWatcher {
-    initialFetch: Promise;
+    initialFetch: Promise<void>;
 
     schemas: Partial<ICall>[];
 
