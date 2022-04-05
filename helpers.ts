@@ -1,6 +1,6 @@
 import axios from "axios";
-import { isEmpty } from "lodash";
-import { GRAPH_ENDPOINT } from "./constants";
+import { isEmpty, result } from "lodash";
+import { GRAPH_ENDPOINT, CHAIN_ID } from "./constants";
 import { COHORTS_QUERY } from "./query";
 
 export interface Token {
@@ -90,3 +90,19 @@ export const getAllCohortTokens = async (): Promise<
     return Promise.reject(err);
   }
 };
+
+export const getTokenPrice = async (chain, tokens) => {
+  const urls = `https://api.coingecko.com/api/v3/simple/token_price/${CHAIN_ID[chain]}?contract_addresses=${tokens}&vs_currencies=usd`;
+  const data = await axios(urls);
+  return data.data;
+}
+
+export const calculateTvl = (tokenBalance, tokenPrice): number => {
+  let tvl = 0;
+  for (const bal in tokenBalance) {
+    let balance = tokenBalance[bal] > 0 ? tokenBalance[bal] : 0;
+    let price = tokenPrice[bal]?.usd > 0 ? tokenPrice[bal]?.usd : 0;
+    tvl = tvl + ( Number(balance) * Number(price) );
+  }
+  return tvl;
+}
