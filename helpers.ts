@@ -1,6 +1,6 @@
 import axios from "axios";
 import { isEmpty, result } from "lodash";
-import { GRAPH_ENDPOINT, CHAIN_ID } from "./constants";
+import { GRAPH_ENDPOINT, CHAIN_ID, missingEthereumTokens, missingBSCTokens } from "./constants";
 import { COHORTS_QUERY } from "./query";
 
 export interface Token {
@@ -91,17 +91,50 @@ export const getAllCohortTokens = async (): Promise<
   }
 };
 
+export const getEthRemainingTokenPrice = async () => {
+  let tokens: string[] = [];
+  let tokens1: string[] = [];
+  for (const token in missingEthereumTokens) {
+    tokens.push(missingEthereumTokens[token]);
+  }
+
+  for (const token in missingBSCTokens) {
+    tokens1.push(missingBSCTokens[token]);
+  }
+
+  const urls = `https://api.coingecko.com/api/v3/simple/token_price/ethereum?contract_addresses=${tokens}&vs_currencies=usd`;
+  const data = await axios(urls);
+  
+  const urls1 = `https://api.coingecko.com/api/v3/simple/token_price/binance-smart-chain?contract_addresses=${tokens1}&vs_currencies=usd`;
+  const data1 = await axios(urls1);
+
+  return {
+    ...data.data,
+    ...data1.data
+  }
+}
+
 export const getTokenPrice = async (chain, tokens) => {
   const urls = `https://api.coingecko.com/api/v3/simple/token_price/${CHAIN_ID[chain]}?contract_addresses=${tokens}&vs_currencies=usd`;
   const data = await axios(urls);
   return data.data;
 }
 
-export const calculateTvl = (tokenBalance, tokenPrice): number => {
+const findToken = (token: string): string => {
+  if (missingEthereumTokens[token] !== '') {
+    return missingEthereumTokens[token];
+  }
+  if (missingBSCTokens[token] !== '') {
+    return missingEthereumTokens[token];
+  }
+  return '';
+}
+
+export const calculateTvl = (tokenBalance, tokenPrice, remainingTokenPrice): number => {
   let tvl = 0;
   for (const bal in tokenBalance) {
-    let balance = tokenBalance[bal] > 0 ? tokenBalance[bal] : 0;
-    let price = tokenPrice[bal]?.usd > 0 ? tokenPrice[bal]?.usd : 0;
+    let balance = tokenBalance[bal] >= 0 ? tokenBalance[bal] : 0;
+    let price = tokenPrice[bal]?.usd === undefined ? ( remainingTokenPrice[findToken(bal)]?.usd >= 0 ? remainingTokenPrice[findToken(bal)]?.usd: 0 ) : tokenPrice[bal]?.usd;
     tvl = tvl + ( Number(balance) * Number(price) );
   }
   return tvl;

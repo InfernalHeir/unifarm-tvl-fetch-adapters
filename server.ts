@@ -5,7 +5,7 @@ import cors from "cors";
 import chalk from "chalk";
 import helmet from "helmet";
 import { config } from "dotenv";
-import { CohortResponse, getAllCohortTokens, Token, getTokenPrice, calculateTvl } from "./helpers";
+import { CohortResponse, getAllCohortTokens, Token, getTokenPrice, calculateTvl, getEthRemainingTokenPrice } from "./helpers";
 import { isEmpty } from "lodash";
 import { getTokenBalances } from "./multicall";
 import NodeCache from "node-cache";
@@ -51,6 +51,10 @@ app.get("/v1/unifarm/tvl", async (req: Request, res: Response) => {
       code: 201,
       message: "Total TVL fetched successfully",
       data: {
+        1: MyCache.get(1),
+        56: MyCache.get(56),
+        137: MyCache.get(137),
+        43114: MyCache.get(43114),
         tvl: MyCache.get("tvl")
       }
     })
@@ -77,9 +81,11 @@ app.get("/v1/unifarm/tvl", async (req: Request, res: Response) => {
 
     const ethTokenPrice = await getTokenPrice(1, ethTokens);
     const bscTokenPrice = await getTokenPrice(56, BSCTokens);
-    const polygonTokenPrice = await getTokenPrice(137, polygonTokens)
+    const polygonTokenPrice = await getTokenPrice(137, polygonTokens);
     const avaxTokenPrice = await getTokenPrice(43114, avaxTokens);
+    const remainingTokenPrice = await getEthRemainingTokenPrice();
     
+    // console.log(remainingTokenPrice);
     // get the result
     let { ETH, BSC, POLYGON, AVAX } = tokens as CohortResponse;
     let [
@@ -94,22 +100,30 @@ app.get("/v1/unifarm/tvl", async (req: Request, res: Response) => {
       getTokenBalances(43114, AVAX as Token[]),
     ]);
 
-    let ethereumTvl = calculateTvl(ethTokenBalances, ethTokenPrice);
-    let bscTvl = calculateTvl(bscTokenBalances, bscTokenPrice);
-    let polygonTvl = calculateTvl(polygonTokenBalances, polygonTokenPrice);
-    let avaxTvl = calculateTvl(avaxTokenBalances, avaxTokenPrice);
+    // console.log('------ Ethereum -------');
+    let ethereumTvl = calculateTvl(ethTokenBalances, ethTokenPrice, remainingTokenPrice);
+    // console.log('------ BSC -------');
+    let bscTvl = calculateTvl(bscTokenBalances, bscTokenPrice, remainingTokenPrice);
+    // console.log('------ Polygon -------');
+    let polygonTvl = calculateTvl(polygonTokenBalances, polygonTokenPrice, remainingTokenPrice);
+    // console.log('------ Avalanche -------');
+    let avaxTvl = calculateTvl(avaxTokenBalances, avaxTokenPrice, remainingTokenPrice);
     
     // set my-cache
-    MyCache.set("tvl", ethereumTvl + polygonTvl + bscTvl + avaxTvl)
+    MyCache.set("tvl", ethereumTvl + polygonTvl + bscTvl + avaxTvl);
+    MyCache.set(1, ethereumTvl);
+    MyCache.set(56, bscTvl);
+    MyCache.set(137, polygonTvl);
+    MyCache.set(43114, avaxTvl)
 
     return res.status(201).json({
       code: 201,
-      message: "Token balances fetched successfully",
+      message: "TVL fetched successfully",
       data: {
-        1: ethTokenBalances,
-        56: bscTokenBalances,
-        137: polygonTokenBalances,
-        43114: avaxTokenBalances,
+        1: ethereumTvl,
+        56: bscTvl,
+        137: polygonTvl,
+        43114: avaxTvl,
         tvl: ethereumTvl + polygonTvl + bscTvl + avaxTvl,
       },
     });
