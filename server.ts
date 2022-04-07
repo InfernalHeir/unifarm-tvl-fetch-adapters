@@ -5,7 +5,14 @@ import cors from "cors";
 import chalk from "chalk";
 import helmet from "helmet";
 import { config } from "dotenv";
-import { CohortResponse, getAllCohortTokens, Token, getTokenPrice, calculateTvl, getEthRemainingTokenPrice } from "./helpers";
+import {
+  CohortResponse,
+  getAllCohortTokens,
+  Token,
+  getTokenPrice,
+  calculateTvl,
+  getEthRemainingTokenPrice,
+} from "./helpers";
 import { isEmpty } from "lodash";
 import { getTokenBalances } from "./multicall";
 import NodeCache from "node-cache";
@@ -15,7 +22,7 @@ config({ path: ".env" });
 const app: Application = express();
 let log = console.log;
 
-const MyCache = new NodeCache({ stdTTL: 4800, checkperiod: 4800});
+const MyCache = new NodeCache({ stdTTL: 4800, checkperiod: 4800 });
 
 app.use(json({ limit: "50kb" }));
 app.use(urlencoded({ extended: true }));
@@ -45,13 +52,12 @@ app.use(helmet());
 // application main route
 // calculate TVL for all chain
 app.get("/v1/unifarm/tvl", async (req: Request, res: Response) => {
-
   if (MyCache.has("tvl")) {
     return res.status(200).json({
       code: 201,
       message: "Total TVL fetched successfully",
-      data: MyCache.get("tvl")
-    })
+      data: MyCache.get("tvl"),
+    });
   }
 
   try {
@@ -68,17 +74,17 @@ app.get("/v1/unifarm/tvl", async (req: Request, res: Response) => {
       });
     }
 
-    const ethTokens = tokens?.ETH?.map((token) => token.token.tokenId)
-    const BSCTokens = tokens?.BSC?.map((token) => token.token.tokenId)
-    const polygonTokens = tokens?.POLYGON?.map((token) => token.token.tokenId)
-    const avaxTokens = tokens?.AVAX?.map((token) => token.token.tokenId)
+    const ethTokens = tokens?.ETH?.map((token) => token.token.tokenId);
+    const BSCTokens = tokens?.BSC?.map((token) => token.token.tokenId);
+    const polygonTokens = tokens?.POLYGON?.map((token) => token.token.tokenId);
+    const avaxTokens = tokens?.AVAX?.map((token) => token.token.tokenId);
 
     const ethTokenPrice = await getTokenPrice(1, ethTokens);
     const bscTokenPrice = await getTokenPrice(56, BSCTokens);
     const polygonTokenPrice = await getTokenPrice(137, polygonTokens);
     const avaxTokenPrice = await getTokenPrice(43114, avaxTokens);
     const remainingTokenPrice = await getEthRemainingTokenPrice();
-    
+
     // console.log(remainingTokenPrice);
     // get the result
     let { ETH, BSC, POLYGON, AVAX } = tokens as CohortResponse;
@@ -94,22 +100,24 @@ app.get("/v1/unifarm/tvl", async (req: Request, res: Response) => {
       getTokenBalances(43114, AVAX as Token[]),
     ]);
 
-    // console.log('------ Ethereum -------');
-    let ethereumTvl = calculateTvl(ethTokenBalances, ethTokenPrice, remainingTokenPrice);
-    // console.log('------ BSC -------');
-    let bscTvl = calculateTvl(bscTokenBalances, bscTokenPrice, remainingTokenPrice);
-    // console.log('------ Polygon -------');
-    let polygonTvl = calculateTvl(polygonTokenBalances, polygonTokenPrice, remainingTokenPrice);
-    // console.log('------ Avalanche -------');
-    let avaxTvl = calculateTvl(avaxTokenBalances, avaxTokenPrice, remainingTokenPrice);
-    
+    let [ethereumTvl, bscTvl, polygonTvl, avaxTvl] = await Promise.all([
+      calculateTvl(ethTokenBalances, ethTokenPrice, remainingTokenPrice),
+      calculateTvl(bscTokenBalances, bscTokenPrice, remainingTokenPrice),
+      calculateTvl(
+        polygonTokenBalances,
+        polygonTokenPrice,
+        remainingTokenPrice
+      ),
+      calculateTvl(avaxTokenBalances, avaxTokenPrice, remainingTokenPrice),
+    ]);
+
     // set my-cache
     MyCache.set("tvl", {
       tvl: ethereumTvl + polygonTvl + bscTvl + avaxTvl,
       1: ethereumTvl,
       56: bscTvl,
       137: polygonTvl,
-      43114: avaxTvl
+      43114: avaxTvl,
     });
 
     return res.status(201).json({
