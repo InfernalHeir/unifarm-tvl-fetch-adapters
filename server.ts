@@ -15,7 +15,7 @@ config({ path: ".env" });
 const app: Application = express();
 let log = console.log;
 
-const MyCache = new NodeCache({ stdTTL: 7200, checkperiod: 7200});
+const MyCache = new NodeCache({ stdTTL: 4800, checkperiod: 4800});
 
 app.use(json({ limit: "50kb" }));
 app.use(urlencoded({ extended: true }));
@@ -50,13 +50,7 @@ app.get("/v1/unifarm/tvl", async (req: Request, res: Response) => {
     return res.status(200).json({
       code: 201,
       message: "Total TVL fetched successfully",
-      data: {
-        1: MyCache.get(1),
-        56: MyCache.get(56),
-        137: MyCache.get(137),
-        43114: MyCache.get(43114),
-        tvl: MyCache.get("tvl")
-      }
+      data: MyCache.get("tvl")
     })
   }
 
@@ -110,11 +104,13 @@ app.get("/v1/unifarm/tvl", async (req: Request, res: Response) => {
     let avaxTvl = calculateTvl(avaxTokenBalances, avaxTokenPrice, remainingTokenPrice);
     
     // set my-cache
-    MyCache.set("tvl", ethereumTvl + polygonTvl + bscTvl + avaxTvl);
-    MyCache.set(1, ethereumTvl);
-    MyCache.set(56, bscTvl);
-    MyCache.set(137, polygonTvl);
-    MyCache.set(43114, avaxTvl)
+    MyCache.set("tvl", {
+      tvl: ethereumTvl + polygonTvl + bscTvl + avaxTvl,
+      1: ethereumTvl,
+      56: bscTvl,
+      137: polygonTvl,
+      43114: avaxTvl
+    });
 
     return res.status(201).json({
       code: 201,

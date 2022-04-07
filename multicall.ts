@@ -65,6 +65,7 @@ export const getTokenBalances = async (
       Number(ethers.utils.formatUnits(balance)),
       2
     );
+    
     tokenBalances[tokenAddress] = previousBalance + parsedBalance;
 
     if (!isEmpty(proxies)) {

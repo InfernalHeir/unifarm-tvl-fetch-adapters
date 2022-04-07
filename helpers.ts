@@ -1,6 +1,6 @@
 import axios from "axios";
 import { isEmpty, result } from "lodash";
-import { GRAPH_ENDPOINT, CHAIN_ID, missingEthereumTokens, missingBSCTokens } from "./constants";
+import { GRAPH_ENDPOINT, CHAIN_ID, missingEthereumTokens, missingBSCTokens, missingAvalancheTokens } from "./constants";
 import { COHORTS_QUERY } from "./query";
 
 export interface Token {
@@ -94,6 +94,7 @@ export const getAllCohortTokens = async (): Promise<
 export const getEthRemainingTokenPrice = async () => {
   let tokens: string[] = [];
   let tokens1: string[] = [];
+  let tokens2: string[] = [];
   for (const token in missingEthereumTokens) {
     tokens.push(missingEthereumTokens[token]);
   }
@@ -102,15 +103,23 @@ export const getEthRemainingTokenPrice = async () => {
     tokens1.push(missingBSCTokens[token]);
   }
 
+  for (const token in missingAvalancheTokens) {
+    tokens2.push(missingAvalancheTokens[token]);
+  }
+
   const urls = `https://api.coingecko.com/api/v3/simple/token_price/ethereum?contract_addresses=${tokens}&vs_currencies=usd`;
   const data = await axios(urls);
   
   const urls1 = `https://api.coingecko.com/api/v3/simple/token_price/binance-smart-chain?contract_addresses=${tokens1}&vs_currencies=usd`;
   const data1 = await axios(urls1);
 
+  const urls2 = `https://api.coingecko.com/api/v3/simple/token_price/avalanche?contract_addresses=${tokens2}&vs_currencies=usd`;
+  const data2 = await axios(urls2);
+
   return {
     ...data.data,
-    ...data1.data
+    ...data1.data,
+    ...data2.data
   }
 }
 
@@ -121,11 +130,14 @@ export const getTokenPrice = async (chain, tokens) => {
 }
 
 const findToken = (token: string): string => {
-  if (missingEthereumTokens[token] !== '') {
+  if (missingEthereumTokens[token] != null) {
     return missingEthereumTokens[token];
   }
-  if (missingBSCTokens[token] !== '') {
+  if (missingBSCTokens[token] != null) {
     return missingEthereumTokens[token];
+  }
+  if (missingAvalancheTokens[token] != null) {
+    return missingAvalancheTokens[token];
   }
   return '';
 }
