@@ -79,13 +79,20 @@ app.get("/v1/unifarm/tvl", async (req: Request, res: Response) => {
     const polygonTokens = tokens?.POLYGON?.map((token) => token.token.tokenId);
     const avaxTokens = tokens?.AVAX?.map((token) => token.token.tokenId);
 
-    const ethTokenPrice = await getTokenPrice(1, ethTokens);
-    const bscTokenPrice = await getTokenPrice(56, BSCTokens);
-    const polygonTokenPrice = await getTokenPrice(137, polygonTokens);
-    const avaxTokenPrice = await getTokenPrice(43114, avaxTokens);
-    const remainingTokenPrice = await getEthRemainingTokenPrice();
+    let [
+      ethTokenPrice,
+      bscTokenPrice,
+      polygonTokenPrice,
+      avaxTokenPrice,
+      remainingTokenPrice
+    ] = await Promise.all([
+      getTokenPrice(1, ethTokens),
+      getTokenPrice(56, BSCTokens),
+      getTokenPrice(137, polygonTokens),
+      getTokenPrice(43114, avaxTokens),
+      getEthRemainingTokenPrice()
+    ])
 
-    // console.log(remainingTokenPrice);
     // get the result
     let { ETH, BSC, POLYGON, AVAX } = tokens as CohortResponse;
     let [
@@ -100,16 +107,11 @@ app.get("/v1/unifarm/tvl", async (req: Request, res: Response) => {
       getTokenBalances(43114, AVAX as Token[]),
     ]);
 
-    let [ethereumTvl, bscTvl, polygonTvl, avaxTvl] = await Promise.all([
-      calculateTvl(ethTokenBalances, ethTokenPrice, remainingTokenPrice),
-      calculateTvl(bscTokenBalances, bscTokenPrice, remainingTokenPrice),
-      calculateTvl(
-        polygonTokenBalances,
-        polygonTokenPrice,
-        remainingTokenPrice
-      ),
-      calculateTvl(avaxTokenBalances, avaxTokenPrice, remainingTokenPrice),
-    ]);
+    let ethereumTvl =  calculateTvl(ethTokenBalances, ethTokenPrice, remainingTokenPrice)
+    let bscTvl =  calculateTvl(bscTokenBalances, bscTokenPrice, remainingTokenPrice)
+    let polygonTvl = calculateTvl(polygonTokenBalances, polygonTokenPrice, remainingTokenPrice);
+    let avaxTvl = calculateTvl(avaxTokenBalances, avaxTokenPrice, remainingTokenPrice);
+
 
     // set my-cache
     MyCache.set("tvl", {
