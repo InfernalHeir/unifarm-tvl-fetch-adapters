@@ -83,6 +83,7 @@ app.get("/v1/unifarm/tvl", async (req: Request, res: Response) => {
     const bscTokenPrice = await getTokenPrice(56, BSCTokens);
     const polygonTokenPrice = await getTokenPrice(137, polygonTokens);
     const avaxTokenPrice = await getTokenPrice(43114, avaxTokens);
+
     const remainingTokenPrice = await getEthRemainingTokenPrice();
 
     // console.log(remainingTokenPrice);
@@ -99,6 +100,8 @@ app.get("/v1/unifarm/tvl", async (req: Request, res: Response) => {
       getTokenBalances(137, POLYGON as Token[]),
       getTokenBalances(43114, AVAX as Token[]),
     ]);
+
+    console.log("polygonTokenBalances", polygonTokenBalances);
 
     let [ethereumTvl, bscTvl, polygonTvl, avaxTvl] = await Promise.all([
       calculateTvl(ethTokenBalances, ethTokenPrice, remainingTokenPrice),
